@@ -95,14 +95,28 @@ const findFileByName = async (driveService, fileName) => {
   }
 };
 
+const getFrontendUrl = (req) => {
+  if (process.env.FRONTEND_URL) {
+    return process.env.FRONTEND_URL;
+  }
+  // Fallback: use request origin if available
+  if (req.get('referer')) {
+    const referer = new URL(req.get('referer'));
+    return referer.origin;
+  }
+  // Local development fallback
+  return 'http://localhost:5173';
+};
+
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email', 'https://www.googleapis.com/auth/drive'] }));
 
 app.get(
   '/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: 'http://localhost:5173?auth=failed' }),
+  passport.authenticate('google', { failureRedirect: '/?auth=failed' }),
   (req, res) => {
     console.log('✅ Authentification réussie pour:', req.user.email);
-    res.redirect('http://localhost:5173?auth=success');
+    const frontendUrl = getFrontendUrl(req);
+    res.redirect(`${frontendUrl}?auth=success`);
   }
 );
 
