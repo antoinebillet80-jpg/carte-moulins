@@ -12,11 +12,17 @@ import { Readable } from 'stream';
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const PARENT_FOLDER_ID = '13CQtu_ReSOaveZGdfEUGKkz3O1ZPzxOX';
 const PHOTOS_FOLDER_NAME = 'Moulins_Photos';
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+const corsOrigins = [
+  'http://localhost:5173',
+  'https://moulins-9ci.pages.dev',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(
