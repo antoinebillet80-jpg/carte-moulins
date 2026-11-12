@@ -2,6 +2,14 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const getIconUrl = () => {
+  const token = localStorage.getItem('authToken');
+  const baseUrl = `${API_URL}/api/photo/1yRMDXFVIU3aEwQx3YBFQfEiARMFwMl29`;
+  return token ? `${baseUrl}?token=${token}` : baseUrl;
+};
+
 function MapComponent({ points, onMapClick, selectedPoint, onPointClick, tempMarkerPos, onClearTemp }) {
   const mapRef = useRef(null);
   const markersRef = useRef({});
@@ -40,10 +48,8 @@ function MapComponent({ points, onMapClick, selectedPoint, onPointClick, tempMar
     });
     markersRef.current = {};
 
-    const iconUrl = `http://localhost:3000/api/photo/1yRMDXFVIU3aEwQx3YBFQfEiARMFwMl29`;
-
     const customIcon = L.icon({
-      iconUrl: iconUrl,
+      iconUrl: getIconUrl(),
       iconSize: [16, 16],
       iconAnchor: [8, 16],
       popupAnchor: [0, -16],

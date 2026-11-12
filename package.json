@@ -18,6 +18,7 @@
     "express-session": "^1.19.0",
     "googleapis": "^173.0.0",
     "gpxparser": "^3.0.8",
+    "jsonwebtoken": "^9.1.2",
     "leaflet": "^1.9.4",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",

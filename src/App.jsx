@@ -2,6 +2,21 @@ import { useState, useEffect } from 'react';
 import MapComponent from './MapComponent';
 import './App.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return {};
+};
+
+const fetchWithAuth = async (url, options = {}) => {
+  const headers = { ...options.headers, ...getAuthHeaders() };
+  return fetch(url, { ...options, headers });
+};
+
 function App() {
   const [points, setPoints] = useState([]);
   const [selectedPoint, setSelectedPoint] = useState(null);
@@ -18,13 +33,12 @@ function App() {
   const [canEdit, setCanEdit] = useState(false);
 
   useEffect(() => {
-    checkAuth();
-
     const params = new URLSearchParams(window.location.search);
-    if (params.get('auth') === 'success') {
-      console.log('✅ Redirection Google détectée, vérification de la session...');
-      setTimeout(() => checkAuth(), 500);
+    if (params.get('auth') === 'success' && params.get('token')) {
+      localStorage.setItem('authToken', params.get('token'));
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
+    checkAuth();
   }, []);
 
   useEffect(() => {
@@ -35,7 +49,7 @@ function App() {
 
   const checkAuth = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/user', { credentials: 'include' });
+      const res = await fetchWithAuth(`${API_URL}/api/user`);
       if (res.ok) {
         const userData = await res.json();
         setUser(userData);
@@ -60,7 +74,7 @@ function App() {
 
   const checkPermissions = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/permissions', { credentials: 'include' });
+      const res = await fetchWithAuth(`${API_URL}/api/permissions`);
       if (res.ok) {
         const data = await res.json();
         setCanEdit(data.canEdit);
@@ -81,7 +95,7 @@ function App() {
     setSelectedPoint(null);
     setFormData({ name: '', desc: '', lat: '', lon: '' });
     try {
-      const res = await fetch('http://localhost:3000/api/gpx', { credentials: 'include' });
+      const res = await fetchWithAuth(`${API_URL}/api/gpx`);
       if (res.ok) {
         const gpxText = await res.text();
         parseGPX(gpxText);
@@ -179,10 +193,9 @@ function App() {
 
       gpx += '</gpx>';
 
-      const res = await fetch('http://localhost:3000/api/gpx', {
+      const res = await fetchWithAuth(`${API_URL}/api/gpx`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ gpx }),
       });
 
@@ -195,12 +208,13 @@ function App() {
   };
 
   const handleLogin = () => {
-    window.location.href = 'http://localhost:3000/auth/google';
+    window.location.href = `${API_URL}/auth/google`;
   };
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:3000/api/logout', { credentials: 'include' });
+      await fetchWithAuth(`${API_URL}/api/logout`);
+      localStorage.removeItem('authToken');
       setUser(null);
       setAutoSaveEnabled(false);
     } catch (error) {
@@ -243,10 +257,9 @@ function App() {
           const mouleName = formData.name || 'moulin';
 
           console.log('⬆️ Téléchargement vers le serveur...');
-          const res = await fetch('http://localhost:3000/api/upload-photo', {
+          const res = await fetchWithAuth(`${API_URL}/api/upload-photo`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({
               mouleName,
               photoData,

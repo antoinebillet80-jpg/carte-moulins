@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
+import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -108,6 +109,30 @@ const getFrontendUrl = (req) => {
   return 'http://localhost:5173';
 };
 
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user.id, email: user.email, displayName: user.displayName, accessToken: user.accessToken, refreshToken: user.refreshToken },
+    process.env.SESSION_SECRET,
+    { expiresIn: '7d' }
+  );
+};
+
+const verifyToken = (req, res, next) => {
+  let token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    token = req.query.token;
+  }
+  if (!token) {
+    return res.status(401).json({ error: 'Non authentifié' });
+  }
+  try {
+    req.user = jwt.verify(token, process.env.SESSION_SECRET);
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Token invalide' });
+  }
+};
+
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email', 'https://www.googleapis.com/auth/drive'] }));
 
 app.get(
@@ -115,30 +140,27 @@ app.get(
   passport.authenticate('google', { failureRedirect: '/?auth=failed' }),
   (req, res) => {
     console.log('✅ Authentification réussie pour:', req.user.email);
+    const token = generateToken(req.user);
     const frontendUrl = getFrontendUrl(req);
-    res.redirect(`${frontendUrl}?auth=success`);
+    res.redirect(`${frontendUrl}?auth=success&token=${token}`);
   }
 );
 
-app.get('/api/user', (req, res) => {
-  if (req.user) {
-    res.json(req.user);
-  } else {
-    res.status(401).json({ error: 'Non authentifié' });
-  }
-});
-
-app.get('/api/logout', (req, res) => {
-  req.logout((err) => {
-    if (err) return res.status(500).json({ error: err });
-    res.json({ message: 'Déconnecté' });
+app.get('/api/user', verifyToken, (req, res) => {
+  res.json({
+    id: req.user.id,
+    displayName: req.user.displayName,
+    email: req.user.email,
+    accessToken: req.user.accessToken,
+    refreshToken: req.user.refreshToken,
   });
 });
 
-app.get('/api/gpx', async (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Non authentifié' });
-  }
+app.get('/api/logout', (req, res) => {
+  res.json({ message: 'Déconnecté' });
+});
+
+app.get('/api/gpx', verifyToken, async (req, res) => {
 
   try {
     console.log('📥 Requête GPX reçue');
@@ -163,10 +185,7 @@ app.get('/api/gpx', async (req, res) => {
   }
 });
 
-app.post('/api/gpx', async (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Non authentifié' });
-  }
+app.post('/api/gpx', verifyToken, async (req, res) => {
 
   try {
     const gpxContent = req.body.gpx;
@@ -223,10 +242,7 @@ const createPhotosFolder = async (driveService) => {
   }
 };
 
-app.get('/api/photo/:fileId', async (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Non authentifié' });
-  }
+app.get('/api/photo/:fileId', verifyToken, async (req, res) => {
 
   try {
     const { fileId } = req.params;
@@ -249,10 +265,7 @@ app.get('/api/photo/:fileId', async (req, res) => {
   }
 });
 
-app.post('/api/upload-photo', async (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Non authentifié' });
-  }
+app.post('/api/upload-photo', verifyToken, async (req, res) => {
 
   try {
     const { mouleName, photoData, fileName } = req.body;
@@ -311,10 +324,7 @@ app.post('/api/upload-photo', async (req, res) => {
   }
 });
 
-app.get('/api/permissions', async (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Non authentifié' });
-  }
+app.get('/api/permissions', verifyToken, async (req, res) => {
 
   try {
     const driveService = drive(req.user.accessToken);
