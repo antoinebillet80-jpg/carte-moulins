@@ -352,6 +352,6 @@ app.get('/api/permissions', verifyToken, async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Serveur lancé sur http://localhost:${PORT}`);
+  console.log(`🚀 SERVEUR DÉMARRÉ - PORT: ${PORT}`);
   console.log(`🔐 Authentification Google: http://localhost:${PORT}/auth/google`);
 });
