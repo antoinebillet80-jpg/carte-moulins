@@ -142,7 +142,9 @@ app.get(
     console.log('✅ Authentification réussie pour:', req.user.email);
     const token = generateToken(req.user);
     const frontendUrl = getFrontendUrl(req);
-    res.redirect(`${frontendUrl}?auth=success&token=${token}`);
+    const redirectUrl = `${frontendUrl}?auth=success&token=${token}`;
+    console.log('🔄 Redirection vers:', redirectUrl);
+    res.redirect(redirectUrl);
   }
 );
 
