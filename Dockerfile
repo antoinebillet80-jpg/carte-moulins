@@ -8,6 +8,10 @@ COPY package*.json ./
 # Installer les dépendances
 RUN npm ci
 
+# Ajouter une étape qui invalide le cache à chaque build
+ARG BUILD_ID
+RUN echo "Build ID: ${BUILD_ID}"
+
 # Copier le code source
 COPY . .
 
